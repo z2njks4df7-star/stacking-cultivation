@@ -1,194 +1,140 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>堆叠修仙 v18.5</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧬</text></svg>" />
-  <script type="module" crossorigin src="./assets/index-CcR_ggL_.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-ctQYFUle.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>堆叠修仙 - Stacklands修仙版</title>
+  <link rel="icon" href="/favicon.svg">
+  <link rel="stylesheet" href="/src/style.css">
 </head>
 <body>
-  <!-- 超早错误捕获：在任何脚本执行前就拦截所有错误 -->
-  <script>
-    (function(){
-      'use strict';
-      window.showEarlyError = function(msg, line, col) {
-        var el = document.getElementById('early-error');
-        if (!el) {
-          el = document.createElement('div');
-          el.id = 'early-error';
-          el.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(120,0,0,0.97);color:#fff;padding:30px;font-size:15px;z-index:999999;overflow:auto;font-family:monospace;line-height:1.8;';
-          document.body.appendChild(el);
-        }
-        el.innerHTML = '<h2 style="color:#ff6b6b;margin-bottom:16px;">⚠️ 游戏加载错误</h2>'
-          + '<div style="margin-bottom:10px;"><b>错误信息：</b></div>'
-          + '<pre style="white-space:pre-wrap;background:rgba(0,0,0,0.4);padding:12px;border-radius:8px;margin-bottom:16px;">' + String(msg) + '</pre>'
-          + (line ? '<div><b>位置：</b> 行 ' + line + (col ? '，列 ' + col : '') + '</div>' : '')
-          + '<button onclick="location.reload()" style="margin-top:20px;padding:10px 30px;font-size:15px;background:#ffd700;color:#1a1a2e;border:none;border-radius:8px;cursor:pointer;font-weight:bold;">🔄 重新加载</button>'
-          + '<button onclick="document.getElementById(\'early-error\').remove()" style="margin-top:20px;margin-left:12px;padding:10px 30px;font-size:15px;background:rgba(255,255,255,0.15);color:#fff;border:none;border-radius:8px;cursor:pointer;">关闭此提示</button>';
-      }
-      window.onerror = function(msg, url, line, col, err) {
-        showEarlyError(msg, line, col);
-        return false;
-      };
-      window.addEventListener('unhandledrejection', function(e) {
-        showEarlyError('Promise 未捕获: ' + (e.reason ? e.reason.message || e.reason : e), 'N/A', 'N/A');
-      });
-    })();
-  </script>
-
-  <!-- 背景星空 canvas -->
-  <canvas id="starfield"></canvas>
-  <!-- 修炼粒子 canvas -->
-  <canvas id="particle-canvas"></canvas>
-
-  <div id="loading-text">🎮 游戏加载中...</div>
-
-  <div id="top-bar" style="display:none;">
-    <div class="stat"><div class="stat-label">境界</div><div class="stat-value" id="realm-value">练气期</div><div id="cultivation-bar-container"><div id="cultivation-bar"></div></div></div>
-    <div class="stat"><div class="stat-label">修为</div><div class="stat-value" id="cultivation-value">0/100</div></div>
-    <div class="stat"><div class="stat-label">天数</div><div class="stat-value" id="day-value">1</div></div>
-    <div class="stat"><div class="stat-label">防御</div><div class="stat-value" id="defense-value">0</div></div>
-    <div class="stat"><div class="stat-label">攻击</div><div class="stat-value" id="attack-value">0</div></div>
-    <div class="stat"><div class="stat-label">暴击</div><div class="stat-value" id="crit-rate-value">10%</div></div>
-    <div class="stat"><div class="stat-label">灵石</div><div class="stat-value" id="spirit-stones-value">0</div></div>
-    <button class="top-btn save-btn" onclick="saveGame()">💾 保存</button>
-    <button class="top-btn load-btn" onclick="loadGame()">📂 读取</button>
-    <button class="top-btn new-btn" onclick="confirmNewGame()">🕹️ 新游戏</button>
-    <button class="top-btn explore-btn" onclick="explore()">🗺️ 探索</button>
-    <button class="top-btn" onclick="toggleAutoCultivate()" id="auto-cultivate-btn" style="background:linear-gradient(135deg,#667eea,#764ba2);box-shadow:0 2px 12px rgba(102,126,234,0.4);">🔄 自动</button>
-    <button class="top-btn task-btn" onclick="toggleTaskPanel()">📋 任务</button>
-    <button class="top-btn" onclick="openSecretRealmPanel()" style="background:linear-gradient(135deg,#4a2c9a,#7b1fa2);box-shadow:0 2px 12px rgba(128,0,255,0.4);">🔮 秘境</button>
-    <button class="top-btn" onclick="openBossPanel()" style="background:linear-gradient(135deg,#ff6b6b,#ee5a24);box-shadow:0 2px 12px rgba(255,107,107,0.4);">🐉 Boss</button>
-    <button class="top-btn" onclick="openSectPanel()" style="background:linear-gradient(135deg,#a8edea,#fed6e3);color:#333;box-shadow:0 2px 12px rgba(168,237,234,0.4);">⛩️ 宗门</button>
-    <button class="top-btn" onclick="openLeaderboard()" style="background:linear-gradient(135deg,#f093fb,#f5576c);box-shadow:0 2px 12px rgba(245,87,108,0.4);">🏆 排行榜</button>
-    <button class="top-btn" onclick="openRecipeBook()" style="background:linear-gradient(135deg,#667eea,#764ba2);box-shadow:0 2px 12px rgba(102,126,234,0.4);">📖 配方</button>
-    <button class="top-btn" id="ascend-btn" onclick="doAscension()" style="background:linear-gradient(135deg,#ffd700,#ff8c00);box-shadow:0 2px 12px rgba(255,215,0,0.5);">🌈 飞升</button>
-    <button class="top-btn" onclick="openGachaPanel()" style="background:linear-gradient(135deg,#ffd700,#ff8c00);box-shadow:0 2px 12px rgba(255,215,0,0.4);">🎰 抽卡</button>
-    <button class="top-btn" onclick="toggleEquipPanel()" style="background:linear-gradient(135deg,#7c3aed,#a855f7);box-shadow:0 2px 12px rgba(124,58,237,0.4);">⚔️ 装备</button>
+  <!-- 顶部状态栏 -->
+  <div id="top-bar">
+    <div id="stats-bar">
+      <div class="stat-item"><span class="stat-label">境界</span><span id="realm-value" class="stat-value">练气期</span></div>
+      <div class="stat-item"><span class="stat-label">修为</span><span id="cultivation-value" class="stat-value">0</span><div id="cultivation-bar-wrap"><div id="cultivation-bar"></div></div></div>
+      <div class="stat-item"><span class="stat-label">天数</span><span id="day-value" class="stat-value">1</span></div>
+      <div class="stat-item"><span class="stat-label">灵石</span><span id="spirit-stones-value" class="stat-value">0</span></div>
+      <div class="stat-item"><span class="stat-label">攻击</span><span id="attack-value" class="stat-value">10</span></div>
+      <div class="stat-item"><span class="stat-label">防御</span><span id="defense-value" class="stat-value">5</span></div>
+    </div>
+    <div id="action-bar">
+      <button id="explore-btn" class="action-btn" onclick="explore()">🌍 探索</button>
+      <button id="boss-btn" class="action-btn" onclick="openBossPanel()">⚔️ Boss</button>
+      <button id="gacha-btn" class="action-btn" onclick="openGachaPanel()">🎰 抽卡</button>
+      <button id="equip-btn" class="action-btn" onclick="openEquipPanel()">⚔️ 装备</button>
+      <button id="sect-btn" class="action-btn" onclick="openSectPanel()">🏛️ 宗门</button>
+      <button id="task-btn" class="action-btn" onclick="toggleTaskPanel()">📋 任务</button>
+      <button id="achieve-btn" class="action-btn" onclick="toggleAchievementPanel()">🏆 成就</button>
+      <button id="lb-btn" class="action-btn" onclick="toggleLeaderboard()">📊 排行榜</button>
+    </div>
   </div>
 
-  <div id="status-panel" style="display:none;"></div>
-  <div id="error-panel"></div>
-  <div id="game-container" style="display:none;"></div>
+  <!-- 游戏主区域 -->
+  <div id="game-container"></div>
 
-  <!-- v18.1 装备面板 -->
-  <div id="equip-panel" style="position:absolute;top:70px;right:-520px;width:400px;height:calc(100vh - 70px);background:linear-gradient(180deg,rgba(20,5,20,0.98) 0%,rgba(40,10,40,0.98) 100%);border-left:2px solid #a855f7;padding:24px 20px;overflow-y:auto;z-index:99;transition:right 0.35s cubic-bezier(0.4,0,0.2,1);box-shadow:-4px 0 30px rgba(124,58,237,0.3);display:none;"></div>
+  <!-- 飞升按钮 -->
+  <div id="ascend-area"><button id="ascend-btn" class="ascend-btn" onclick="doAscension()" style="display:none">🌈 飞升</button></div>
 
-  <div id="boss-panel" style="position:absolute;top:70px;right:-520px;width:500px;height:calc(100vh - 70px);background:linear-gradient(180deg,rgba(20,5,5,0.98) 0%,rgba(40,10,10,0.98) 100%);border-left:2px solid #ff6b6b;padding:24px 20px;overflow-y:auto;z-index:99;transition:right 0.35s cubic-bezier(0.4,0,0.2,1);box-shadow:-4px 0 30px rgba(255,0,0,0.3);">
-    <div style="color:#ff6b6b;font-size:20px;font-weight:bold;margin-bottom:18px;text-shadow:0 0 15px rgba(255,107,107,0.5);">🐉 Boss 挑战</div>
-    <div id="boss-list" style="margin-bottom:20px;"></div>
-    <div id="boss-battle-area" style="display:none;background:rgba(255,50,50,0.08);border:1px solid rgba(255,100,100,0.3);border-radius:12px;padding:16px;margin-bottom:16px;">
-      <div id="boss-battle-name" style="font-size:18px;font-weight:bold;color:#ff6b6b;margin-bottom:10px;"></div>
-      <div id="boss-name" style="font-size:14px;color:#aaa;margin-bottom:8px;"></div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
-        <div>
-          <div style="color:#aaa;font-size:12px;">Boss HP</div>
-          <div id="boss-hp-bar-container" style="width:180px;height:16px;background:rgba(255,255,255,0.1);border-radius:8px;overflow:hidden;margin-top:4px;">
-            <div id="boss-hp-bar" style="height:100%;width:100%;background:linear-gradient(90deg,#ff6b6b,#ff0000);border-radius:8px;transition:width 0.3s;"></div>
-          </div>
-          <div id="boss-hp-text" style="font-size:12px;color:#ff6b6b;margin-top:2px;"></div>
-        </div>
-        <div>
-          <div style="color:#aaa;font-size:12px;">你的战力</div>
-          <div id="boss-player-power" style="font-size:18px;color:#ffd700;font-weight:bold;"></div>
+  <!-- 面板区域 -->
+  <div id="panels">
+    <!-- Boss面板 -->
+    <div id="boss-panel" class="panel">
+      <div class="panel-header"><h3>⚔️ Boss挑战</h3><button class="close-btn" onclick="closeBossPanel()">✕</button></div>
+      <div id="boss-list"></div>
+      <div id="boss-battle-area" style="display:none">
+        <div id="boss-battle-name"></div>
+        <div id="boss-hp-bar-container"><div id="boss-hp-bar"></div></div>
+        <div id="boss-hp-text"></div>
+        <div id="boss-player-power"></div>
+        <div id="boss-log"></div>
+        <div id="boss-skills-area"></div>
+      </div>
+      <div id="boss-reward-area" style="display:none">
+        <div id="boss-reward-text"></div>
+        <button onclick="closeBossPanel()">确定</button>
+      </div>
+    </div>
+
+    <!-- 宗门面板 -->
+    <div id="sect-panel" class="panel">
+      <div class="panel-header"><h3>🏛️ 宗门</h3><button class="close-btn" onclick="closeSectPanel()">✕</button></div>
+      <div id="sect-action-area">
+        <div id="sect-list"></div>
+        <div style="padding:10px;text-align:center">
+          <input id="sect-name-input" placeholder="宗门名称(2-6字)" maxlength="6">
+          <button onclick="createSect()">创建宗门(100修为)</button>
         </div>
       </div>
-      <div id="boss-log" style="background:rgba(0,0,0,0.4);border-radius:8px;padding:10px;height:120px;overflow-y:auto;font-size:12px;color:#ccc;margin-bottom:12px;"></div>
-      <button onclick="attackBoss()" style="width:100%;padding:10px;background:linear-gradient(135deg,#ff6b6b,#ee5a24);border:none;border-radius:8px;color:#fff;font-size:15px;font-weight:bold;cursor:pointer;">⚔️ 攻击！</button>
-    </div>
-    <div id="boss-reward-area" style="display:none;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.3);border-radius:12px;padding:16px;text-align:center;">
-      <div style="font-size:48px;margin-bottom:10px;">🎊</div>
-      <div style="font-size:18px;color:#ffd700;font-weight:bold;margin-bottom:8px;">挑战成功！</div>
-      <div id="boss-reward-text" style="font-size:14px;color:#ccc;margin-bottom:12px;"></div>
-      <button onclick="closeBossPanel()" style="padding:8px 24px;background:linear-gradient(135deg,#ffd700,#ff8c00);border:none;border-radius:10px;color:#1a1a2e;font-size:14px;font-weight:bold;cursor:pointer;">太棒了！</button>
-    </div>
-  </div>
-
-  <div id="sect-panel" style="position:absolute;top:70px;right:-520px;width:500px;height:calc(100vh - 70px);background:linear-gradient(180deg,rgba(5,5,20,0.98) 0%,rgba(15,15,35,0.98) 100%);border-left:2px solid #a8edea;padding:24px 20px;overflow-y:auto;z-index:99;transition:right 0.35s cubic-bezier(0.4,0,0.2,1);box-shadow:-4px 0 30px rgba(168,237,234,0.3);">
-    <div style="color:#a8edea;font-size:20px;font-weight:bold;margin-bottom:18px;text-shadow:0 0 15px rgba(168,237,234,0.5);">⛩️ 宗门系统</div>
-    <div id="sect-info-area" style="display:none;margin-bottom:20px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div id="sect-name-display" style="font-size:18px;font-weight:bold;color:#a8edea;"></div>
-        <div id="sect-contribution-display" style="font-size:13px;color:#ffd700;"></div>
-      </div>
-      <div id="sect-desc-display" style="font-size:13px;color:#aaa;margin-bottom:12px;"></div>
-      <div style="display:flex;gap:10px;margin-bottom:16px;">
-        <button onclick="openSectShop()" style="flex:1;padding:8px;background:linear-gradient(135deg,#11998e,#38ef7d);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:bold;cursor:pointer;">🛒 宗门商店</button>
-        <button onclick="sectWar()" style="flex:1;padding:8px;background:linear-gradient(135deg,#f093fb,#f5576c);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:bold;cursor:pointer;">⚔️ 宗门战</button>
-        <button onclick="leaveSect()" style="flex:1;padding:8px;background:linear-gradient(135deg,#666,#999);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:bold;cursor:pointer;">🚪 退出宗门</button>
-      </div>
-      <div id="sect-members-display" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px;font-size:13px;color:#ccc;"></div>
-    </div>
-    <div id="sect-action-area">
-      <div style="margin-bottom:16px;">
-        <div style="color:#ddd;font-size:14px;font-weight:bold;margin-bottom:8px;">创建宗门</div>
-        <div style="display:flex;gap:8px;margin-bottom:8px;">
-          <input id="sect-name-input" placeholder="输入宗门名称..." style="flex:1;padding:8px 12px;border:1px solid rgba(168,237,234,0.3);border-radius:8px;background:rgba(255,255,255,0.06);color:#fff;font-size:13px;">
-          <button onclick="createSect()" style="padding:8px 16px;background:linear-gradient(135deg,#a8edea,#fed6e3);border:none;border-radius:8px;color:#333;font-size:13px;font-weight:bold;cursor:pointer;">创建</button>
+      <div id="sect-info-area" style="display:none">
+        <div id="sect-name-display"></div>
+        <div id="sect-contribution-display"></div>
+        <div id="sect-desc-display"></div>
+        <div id="sect-members-display"></div>
+        <div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap">
+          <button onclick="claimSectTask()">宗门任务</button>
+          <button onclick="buySectItem()">宗门商店</button>
+          <button onclick="leaveSect()">退出宗门</button>
         </div>
-        <div id="sect-create-desc" style="font-size:12px;color:#888;">创建费用：100修为 | 名称2-6个字</div>
       </div>
-      <div style="margin-bottom:16px;">
-        <div style="color:#ddd;font-size:14px;font-weight:bold;margin-bottom:8px;">可加入的宗门</div>
-        <div id="sect-list" style="max-height:300px;overflow-y:auto;"></div>
+      <div id="sect-shop-area" style="display:none">
+        <div id="sect-shop-items"></div>
+        <button onclick="closeSectShop()">返回</button>
       </div>
     </div>
-    <div id="sect-shop-area" style="display:none;">
-      <div style="color:#ddd;font-size:16px;font-weight:bold;margin-bottom:12px;">🛒 宗门商店（贡献兑换）</div>
-      <div id="sect-shop-items" style="margin-bottom:16px;"></div>
-      <button onclick="backToSectInfo()" style="padding:8px 20px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:#ccc;font-size:13px;cursor:pointer;">← 返回</button>
+
+    <!-- 抽卡面板 -->
+    <div id="gacha-panel" class="panel">
+      <div class="panel-header"><h3>🎰 抽卡</h3><button class="close-btn" onclick="closeGachaPanel()">✕</button></div>
+      <div style="padding:20px;text-align:center">
+        <div id="gacha-pity-ssr">SSR保底: <span>0/50</span></div>
+        <div id="gacha-pity-ssr-bar" style="height:8px;background:#333;border-radius:4px;margin-bottom:8px"><div style="height:100%;background:linear-gradient(90deg,#ff6b6b,#ffd700);width:0%"></div></div>
+        <div id="gacha-pity-sr">SR保底: <span>0/10</span></div>
+        <div id="gacha-pity-sr-bar" style="height:8px;background:#333;border-radius:4px;margin-bottom:16px"><div style="height:100%;background:linear-gradient(90deg,#4fc3f7,#a8edea);width:0%"></div></div>
+        <button onclick="gacha()" style="margin:8px;padding:12px 24px;background:linear-gradient(135deg,#4fc3f7,#4a90d9);border:none;border-radius:8px;color:#fff;font-size:16px;cursor:pointer">单抽 (100灵石)</button>
+        <button onclick="gachaTen()" style="margin:8px;padding:12px 24px;background:linear-gradient(135deg,#ffd700,#ff8c00);border:none;border-radius:8px;color:#1a1a2e;font-size:16px;cursor:pointer">十连 (900灵石)</button>
+      </div>
+    </div>
+
+    <!-- 装备面板 -->
+    <div id="equip-panel" class="panel">
+      <div class="panel-header"><h3>⚔️ 装备强化</h3><button class="close-btn" onclick="closeEquipPanel()">✕</button></div>
+      <div id="equip-list"></div>
+    </div>
+
+    <!-- 任务面板 -->
+    <div id="task-panel" class="panel">
+      <div class="panel-header"><h3>📋 任务</h3><button class="close-btn" onclick="toggleTaskPanel()">✕</button></div>
+      <div id="main-tasks"></div>
+      <div id="daily-tasks"></div>
+    </div>
+
+    <!-- 成就面板 -->
+    <div id="achievement-panel" class="panel">
+      <div class="panel-header"><h3>🏆 成就</h3><button class="close-btn" onclick="toggleAchievementPanel()">✕</button></div>
+      <div id="achievement-list"></div>
+    </div>
+
+    <!-- 排行榜面板 -->
+    <div id="leaderboard-panel" class="panel">
+      <div class="panel-header"><h3>📊 排行榜</h3><button class="close-btn" onclick="toggleLeaderboard()">✕</button></div>
+      <div style="display:flex;gap:8px;margin:10px">
+        <button id="lb-tab-power" onclick="switchLeaderboard('power')">战力榜</button>
+        <button id="lb-tab-realm" onclick="switchLeaderboard('realm')">境界榜</button>
+        <button id="lb-tab-day" onclick="switchLeaderboard('day')">修仙天数榜</button>
+      </div>
+      <div id="leaderboard-list"></div>
     </div>
   </div>
 
-  <div id="leaderboard-panel" style="position:absolute;top:70px;right:-520px;width:500px;height:calc(100vh - 70px);background:linear-gradient(180deg,rgba(20,5,20,0.98) 0%,rgba(40,10,40,0.98) 100%);border-left:2px solid #f093fb;padding:24px 20px;overflow-y:auto;z-index:99;transition:right 0.35s cubic-bezier(0.4,0,0.2,1);box-shadow:-4px 0 30px rgba(245,87,108,0.3);">
-    <div style="color:#f093fb;font-size:20px;font-weight:bold;margin-bottom:18px;text-shadow:0 0 15px rgba(245,87,108,0.5);">🏆 全服排行榜</div>
-    <div style="display:flex;gap:8px;margin-bottom:16px;">
-      <button onclick="switchLBTab('power')" id="lb-tab-power" class="lb-tab-btn" style="flex:1;padding:8px;border:none;border-radius:8px;font-size:13px;font-weight:bold;cursor:pointer;background:rgba(240,147,251,0.3);color:#f093fb;">⚔️ 战力榜</button>
-      <button onclick="switchLBTab('realm')" id="lb-tab-realm" class="lb-tab-btn" style="flex:1;padding:8px;border:none;border-radius:8px;font-size:13px;font-weight:bold;cursor:pointer;background:rgba(255,255,255,0.06);color:#aaa;">🏔️ 境界榜</button>
-      <button onclick="switchLBTab('day')" id="lb-tab-day" class="lb-tab-btn" style="flex:1;padding:8px;border:none;border-radius:8px;font-size:13px;font-weight:bold;cursor:pointer;background:rgba(255,255,255,0.06);color:#aaa;">📅 修为榜</button>
-    </div>
-    <div id="leaderboard-list" style="margin-bottom:16px;"></div>
-    <div style="text-align:center;font-size:12px;color:#666;">模拟数据 | 每小时刷新</div>
+  <!-- Debug面板 -->
+  <div id="debug-panel" class="debug-panel" onclick="this.classList.toggle('expanded')">
+    <div class="debug-header">🐛 Debug</div>
+    <div id="debug-log"></div>
   </div>
 
-  <div id="gacha-panel" style="position:absolute;top:70px;right:-420px;width:400px;height:calc(100vh - 70px);background:linear-gradient(180deg,rgba(20,15,0,0.98) 0%,rgba(40,30,0,0.98) 100%);border-left:2px solid #ffd700;padding:24px 20px;overflow-y:auto;z-index:99;transition:right 0.35s cubic-bezier(0.4,0,0.2,1);box-shadow:-4px 0 30px rgba(255,215,0,0.3);">
-    <div style="color:#ffd700;font-size:20px;font-weight:bold;margin-bottom:18px;text-shadow:0 0 15px rgba(255,215,0,0.5);">🎰 灵石抽卡</div>
-    <div style="background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.3);border-radius:12px;padding:16px;margin-bottom:20px;text-align:center;">
-      <div style="color:#aaa;font-size:12px;">当前灵石</div>
-      <div id="gacha-stones-display" style="font-size:32px;color:#ffd700;font-weight:bold;margin:8px 0;text-shadow:0 0 20px rgba(255,215,0,0.6);">0</div>
-      <div style="color:#888;font-size:11px;">每日免费领50 → 单抽100 | 十连900（9折）</div>
-    </div>
-    <div style="display:flex;gap:12px;margin-bottom:20px;">
-      <button onclick="gachaOnce()" style="flex:1;padding:14px;background:linear-gradient(135deg,#ffd700,#ff8c00);border:none;border-radius:12px;color:#1a1a2e;font-size:15px;font-weight:bold;cursor:pointer;box-shadow:0 4px 20px rgba(255,215,0,0.4);">🎯 单抽<br>100灵石</button>
-      <button onclick="gachaTen()" style="flex:1;padding:14px;background:linear-gradient(135deg,#ff6b6b,#ee5a24);border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:bold;cursor:pointer;box-shadow:0 4px 20px rgba(255,107,107,0.4);">🎲 十连<br>900灵石</button>
-    </div>
-    <div style="color:#ffd700;font-size:14px;font-weight:bold;margin-bottom:10px;">📊 保底进度</div>
-    <div style="background:rgba(0,0,0,0.3);border-radius:10px;padding:12px;font-size:13px;color:#ccc;margin-bottom:16px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:#ff6b6b;">SSR保底</span><span id="gacha-pity-ssr">0/50</span></div>
-      <div style="height:6px;background:#333;border-radius:3px;overflow:hidden;"><div id="gacha-pity-ssr-bar" style="height:100%;background:linear-gradient(90deg,#ff6b6b,#ee5a24);width:0%;"></div></div>
-      <div style="display:flex;justify-content:space-between;margin:10px 0 6px 0;"><span style="color:#ffd700;">SR保底</span><span id="gacha-pity-sr">0/10</span></div>
-      <div style="height:6px;background:#333;border-radius:3px;overflow:hidden;"><div id="gacha-pity-sr-bar" style="height:100%;background:linear-gradient(90deg,#ffd700,#ff8c00);width:0%;"></div></div>
-    </div>
-    <div style="color:#ffd700;font-size:14px;font-weight:bold;margin-bottom:10px;">📊 抽卡概率</div>
-    <div style="background:rgba(0,0,0,0.3);border-radius:10px;padding:12px;font-size:13px;color:#ccc;line-height:2;">
-      <div style="display:flex;justify-content:space-between;"><span style="color:#ff6b6b;">SSR（2%）</span><span>法器 | 极致丹药 | 精钢护甲</span></div>
-      <div style="display:flex;justify-content:space-between;"><span style="color:#ffd700;">SR（10%）</span><span>高级丹药 | 法袍 | 高级丹炉 | 灵芝</span></div>
-      <div style="display:flex;justify-content:space-between;"><span style="color:#4fc3f7;">R（38%）</span><span>丹药 | 粗衣 | 炼器炉 | 人参 | 何首乌</span></div>
-      <div style="display:flex;justify-content:space-between;"><span style="color:#aaa;">N（50%）</span><span>修仙者 | 枸杞 | 韭菜</span></div>
-    </div>
-  </div>
+  <div id="gacha-result-panel" style="display:none"></div>
 
-  <div id="secret-realm-panel" style="position:absolute;top:70px;right:-520px;width:500px;height:calc(100vh - 70px);background:linear-gradient(180deg,rgba(10,5,25,0.98) 0%,rgba(20,10,40,0.98) 100%);border-left:2px solid #9b59b6;padding:24px 20px;overflow-y:auto;z-index:99;transition:right 0.35s cubic-bezier(0.4,0,0.2,1);box-shadow:-4px 0 30px rgba(155,89,182,0.3);display:none;"></div>
-
-  <div id="debug-panel" style="display:none;"><div>🚀 游戏加载中...</div></div>
-
-  <div id="task-panel">
-    <div class="task-section"><div class="task-section-title">📜 主线任务</div><div id="main-tasks"></div></div>
-    <div class="task-section"><div class="task-section-title">📋 日常任务</div><div id="daily-tasks"></div></div>
-    <div class="achievement-section"><div class="achievement-section-title">🏆 成就</div><div id="achievements-list"></div></div>
-  </div>
-
+  <script type="module" src="/src/main.js"></script>
 </body>
 </html>
