@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>堆叠修仙 - Stacklands修仙版</title>
+  <link rel="icon" href="/assets/favicon-Bs_r76O8.svg">
+  <script type="module" crossorigin src="/assets/index-Cx4XKqfj.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-CUoQ9O1t.css">
+</head>
+<body>
+  <!-- 顶部状态栏 -->
+  <div id="top-bar">
+    <div id="stats-bar">
+      <div class="stat-item"><span class="stat-label">境界</span><span id="realm-value" class="stat-value">练气期</span></div>
+      <div class="stat-item"><span class="stat-label">修为</span><span id="cultivation-value" class="stat-value">0</span><div id="cultivation-bar-wrap"><div id="cultivation-bar"></div></div></div>
+      <div class="stat-item"><span class="stat-label">天数</span><span id="day-value" class="stat-value">1</span></div>
+      <div class="stat-item"><span class="stat-label">灵石</span><span id="spirit-stones-value" class="stat-value">0</span></div>
+      <div class="stat-item"><span class="stat-label">攻击</span><span id="attack-value" class="stat-value">10</span></div>
+      <div class="stat-item"><span class="stat-label">防御</span><span id="defense-value" class="stat-value">5</span></div>
+    </div>
+    <div id="action-bar">
+      <button id="explore-btn" class="action-btn" onclick="explore()">🌍 探索</button>
+      <button id="boss-btn" class="action-btn" onclick="openBossPanel()">⚔️ Boss</button>
+      <button id="gacha-btn" class="action-btn" onclick="openGachaPanel()">🎰 抽卡</button>
+      <button id="equip-btn" class="action-btn" onclick="openEquipPanel()">⚔️ 装备</button>
+      <button id="sect-btn" class="action-btn" onclick="openSectPanel()">🏛️ 宗门</button>
+      <button id="task-btn" class="action-btn" onclick="toggleTaskPanel()">📋 任务</button>
+      <button id="achieve-btn" class="action-btn" onclick="toggleAchievementPanel()">🏆 成就</button>
+      <button id="lb-btn" class="action-btn" onclick="toggleLeaderboard()">📊 排行榜</button>
+    </div>
+  </div>
+
+  <!-- 游戏主区域 -->
+  <div id="game-container"></div>
+
+  <!-- 飞升按钮 -->
+  <div id="ascend-area"><button id="ascend-btn" class="ascend-btn" onclick="doAscension()" style="display:none">🌈 飞升</button></div>
+
+  <!-- 面板区域 -->
+  <div id="panels">
+    <!-- Boss面板 -->
+    <div id="boss-panel" class="panel">
+      <div class="panel-header"><h3>⚔️ Boss挑战</h3><button class="close-btn" onclick="closeBossPanel()">✕</button></div>
+      <div id="boss-list"></div>
+      <div id="boss-battle-area" style="display:none">
+        <div id="boss-battle-name"></div>
+        <div id="boss-hp-bar-container"><div id="boss-hp-bar"></div></div>
+        <div id="boss-hp-text"></div>
+        <div id="boss-player-power"></div>
+        <div id="boss-log"></div>
+        <div id="boss-skills-area"></div>
+      </div>
+      <div id="boss-reward-area" style="display:none">
+        <div id="boss-reward-text"></div>
+        <button onclick="closeBossPanel()">确定</button>
+      </div>
+    </div>
+
+    <!-- 宗门面板 -->
+    <div id="sect-panel" class="panel">
+      <div class="panel-header"><h3>🏛️ 宗门</h3><button class="close-btn" onclick="closeSectPanel()">✕</button></div>
+      <div id="sect-action-area">
+        <div id="sect-list"></div>
+        <div style="padding:10px;text-align:center">
+          <input id="sect-name-input" placeholder="宗门名称(2-6字)" maxlength="6">
+          <button onclick="createSect()">创建宗门(100修为)</button>
+        </div>
+      </div>
+      <div id="sect-info-area" style="display:none">
+        <div id="sect-name-display"></div>
+        <div id="sect-contribution-display"></div>
+        <div id="sect-desc-display"></div>
+        <div id="sect-members-display"></div>
+        <div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap">
+          <button onclick="claimSectTask()">宗门任务</button>
+          <button onclick="buySectItem()">宗门商店</button>
+          <button onclick="leaveSect()">退出宗门</button>
+        </div>
+      </div>
+      <div id="sect-shop-area" style="display:none">
+        <div id="sect-shop-items"></div>
+        <button onclick="closeSectShop()">返回</button>
+      </div>
+    </div>
+
+    <!-- 抽卡面板 -->
+    <div id="gacha-panel" class="panel">
+      <div class="panel-header"><h3>🎰 抽卡</h3><button class="close-btn" onclick="closeGachaPanel()">✕</button></div>
+      <div style="padding:20px;text-align:center">
+        <div id="gacha-pity-ssr">SSR保底: <span>0/50</span></div>
+        <div id="gacha-pity-ssr-bar" style="height:8px;background:#333;border-radius:4px;margin-bottom:8px"><div style="height:100%;background:linear-gradient(90deg,#ff6b6b,#ffd700);width:0%"></div></div>
+        <div id="gacha-pity-sr">SR保底: <span>0/10</span></div>
+        <div id="gacha-pity-sr-bar" style="height:8px;background:#333;border-radius:4px;margin-bottom:16px"><div style="height:100%;background:linear-gradient(90deg,#4fc3f7,#a8edea);width:0%"></div></div>
+        <button onclick="gacha()" style="margin:8px;padding:12px 24px;background:linear-gradient(135deg,#4fc3f7,#4a90d9);border:none;border-radius:8px;color:#fff;font-size:16px;cursor:pointer">单抽 (100灵石)</button>
+        <button onclick="gachaTen()" style="margin:8px;padding:12px 24px;background:linear-gradient(135deg,#ffd700,#ff8c00);border:none;border-radius:8px;color:#1a1a2e;font-size:16px;cursor:pointer">十连 (900灵石)</button>
+      </div>
+    </div>
+
+    <!-- 装备面板 -->
+    <div id="equip-panel" class="panel">
+      <div class="panel-header"><h3>⚔️ 装备强化</h3><button class="close-btn" onclick="closeEquipPanel()">✕</button></div>
+      <div id="equip-list"></div>
+    </div>
+
+    <!-- 任务面板 -->
+    <div id="task-panel" class="panel">
+      <div class="panel-header"><h3>📋 任务</h3><button class="close-btn" onclick="toggleTaskPanel()">✕</button></div>
+      <div id="main-tasks"></div>
+      <div id="daily-tasks"></div>
+    </div>
+
+    <!-- 成就面板 -->
+    <div id="achievement-panel" class="panel">
+      <div class="panel-header"><h3>🏆 成就</h3><button class="close-btn" onclick="toggleAchievementPanel()">✕</button></div>
+      <div id="achievement-list"></div>
+    </div>
+
+    <!-- 排行榜面板 -->
+    <div id="leaderboard-panel" class="panel">
+      <div class="panel-header"><h3>📊 排行榜</h3><button class="close-btn" onclick="toggleLeaderboard()">✕</button></div>
+      <div style="display:flex;gap:8px;margin:10px">
+        <button id="lb-tab-power" onclick="switchLeaderboard('power')">战力榜</button>
+        <button id="lb-tab-realm" onclick="switchLeaderboard('realm')">境界榜</button>
+        <button id="lb-tab-day" onclick="switchLeaderboard('day')">修仙天数榜</button>
+      </div>
+      <div id="leaderboard-list"></div>
+    </div>
+  </div>
+
+  <!-- Debug面板 -->
+  <div id="debug-panel" class="debug-panel" onclick="this.classList.toggle('expanded')">
+    <div class="debug-header">🐛 Debug</div>
+    <div id="debug-log"></div>
+  </div>
+
+  <div id="gacha-result-panel" style="display:none"></div>
+
+</body>
+</html>
